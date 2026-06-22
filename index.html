@@ -1,0 +1,763 @@
+<html lang="en">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUPO 2026 | Research Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --brand-blue: #3C73B8;
+            --brand-green: #6AAF5E;
+            --brand-lightblue: #28AAE1;
+            --brand-red: #D93626;
+
+            --bg-soft: #f4f8fc;
+            --bg-panel: #ffffff;
+            --text-dark: #1f2d3d;
+            --text-muted: #5f6c7b;
+            --border-soft: rgba(60, 115, 184, 0.12);
+            --shadow-soft: 0 16px 40px rgba(60, 115, 184, 0.10);
+        }
+        
+        body { 
+            background: linear-gradient(180deg, #f4f8fc 0%, #eef6fb 100%);
+            color: var(--text-dark); 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            padding: 28px 20px 40px; 
+            text-align: center;
+            min-height: 100vh;
+        }
+
+        .page-wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        h1 { 
+            margin: 8px 0 10px; 
+            font-weight: 800; 
+            letter-spacing: -1px; 
+            color: var(--text-dark);
+            font-size: clamp(2rem, 4vw, 3.1rem);
+            line-height: 1.05;
+        }
+        
+        p.subtitle {
+            opacity: 1;
+            margin: 0 auto 30px;
+            font-size: 1.08rem;
+            color: var(--text-muted);
+            max-width: 720px;
+            line-height: 1.5;
+        }
+
+        .stats-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 0 auto 28px;
+            flex-wrap: wrap;
+            max-width: 900px;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 22px;
+            padding: 22px 28px;
+            min-width: 240px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .num { 
+            font-size: 3rem; 
+            font-weight: 800; 
+            color: var(--brand-green); 
+            display: block; 
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .label { 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1.8px; 
+            color: var(--text-dark); 
+            opacity: 0.8;
+            display: block;
+        }
+
+        .btn-container {
+            margin: 10px 0 30px;
+        }
+
+        .register-btn {
+            display: inline-block;
+            background: var(--brand-blue);
+            color: white;
+            padding: 15px 34px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 10px 24px rgba(60, 115, 184, 0.20);
+        }
+
+        .register-btn:hover { 
+            background: var(--brand-lightblue);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(40, 170, 225, 0.25);
+        }
+
+        .map-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 28px;
+            padding: 14px;
+            box-shadow: 0 20px 50px rgba(35, 31, 32, 0.10);
+        }
+
+        #map { 
+            height: 680px; 
+            width: 100%; 
+            border-radius: 20px; 
+            background: #eef6fb;
+        }
+
+        .ping-marker {
+            background: var(--brand-lightblue);
+            border: 2px solid white;
+            border-radius: 50%;
+            animation: pulse-brand 2.4s infinite;
+            box-shadow: 0 2px 8px rgba(35, 31, 32, 0.18);
+        }
+
+        @keyframes pulse-brand {
+            0% { box-shadow: 0 0 0 0 rgba(40, 170, 225, 0.40); }
+            70% { box-shadow: 0 0 0 12px rgba(40, 170, 225, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 170, 225, 0); }
+        }
+
+        .leaflet-tooltip { 
+            background: white !important; 
+            color: var(--text-dark) !important; 
+            border: 1px solid rgba(60, 115, 184, 0.25) !important; 
+            border-radius: 12px; 
+            padding: 10px 12px; 
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(35, 31, 32, 0.12);
+        }
+
+        .leaflet-control-attribution { 
+            background: rgba(255, 255, 255, 0.88) !important; 
+            color: #666 !important; 
+            border-radius: 10px 0 0 0;
+            backdrop-filter: blur(4px);
+        }
+
+        .leaflet-container {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        @media (max-width: 900px) {
+            #map {
+                height: 560px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 20px 14px 28px;
+            }
+
+            .stat-card {
+                min-width: unset;
+                width: 100%;
+            }
+
+            .num {
+                font-size: 2.5rem;
+            }
+
+            #map {
+                height: 480px;
+            }
+
+            .register-btn {
+                width: 100%;
+                max-width: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <h1>HUPO 2026: Where the World's Proteomics Community Meets</h1>
+        <p class="subtitle">Visualizing the global reach of abstract submissions from the international proteomics community.</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="num" id="count-abstracts">0</span>
+                <span class="label">Total Abstract Submissions</span>
+            </div>
+            <div class="stat-card">
+                <span class="num" id="count-nations">0</span>
+                <span class="label">Countries Represented</span>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <a href="https://hupo2026.org/" target="_blank" class="register-btn">Be Part Of It, Register Now →</a>
+        </div>
+
+        <div class="map-card">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRdhYp-zS6dSabCXfz7sVU_ah7VoJKAehrqibhb0sWL-35MH1Zd-LVxKABw5kUUlJgeqde5j0baFq-Z/pub?gid=0&single=true&output=csv';
+
+        const map = L.map('map', { 
+            center: [20, 10], 
+            zoom: 2, 
+            minZoom: 1.5, 
+            maxZoom: 8, 
+            zoomControl: false, 
+            attributionControl: true 
+        });
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        const hubs = {
+            'Vancouver': [49.28, -123.12],
+            'Calgary': [51.04, -114.07],
+            'Edmonton': [53.54, -113.49],
+            'Saskatoon': [52.13, -106.67],
+            'Winnipeg': [49.89, -97.13],
+            'Toronto': [43.65, -79.38],
+            'Ottawa': [45.42, -75.69],
+            'Montreal': [45.50, -73.56],
+            'Quebec': [46.81, -71.20],
+            'Halifax': [44.64, -63.57],
+            'St. Johns': [47.56, -52.71],
+            'Victoria': [48.42, -123.36],
+            'Nanaimo': [49.16, -123.93],
+            'London': [51.50, -0.12],
+
+            'Boise': [43.615, -116.202],
+            'Weston': [26.100, -80.400],
+            'Waltham': [42.376, -71.236],
+            'Durham': [35.994, -78.899],
+            'Sacramento': [38.581, -121.494],
+            'Milwaukee': [43.039, -87.906],
+            'Rochester': [43.157, -77.609],
+            'San Antonio': [29.42, -98.49],
+            'Indianapolis': [39.768, -86.158],
+            'Redwood City': [37.485, -122.236],
+            'Bradenton': [27.498, -82.574],
+            'Anaheim': [33.836, -117.914],
+            'Torrance': [33.835, -118.340],
+            'Cincinnati': [39.103, -84.512],
+            'Riverside': [33.980, -117.375],
+            'Warwick': [41.700, -71.416],
+            'Grapevine': [32.934, -97.078],
+            'Pittsburgh': [40.44, -79.99],
+            'Galveston': [29.301, -94.798],
+            'Hamilton': [43.255, -79.871],
+            'Buffalo': [42.886, -78.878],
+            'New Orleans': [29.951, -90.071],
+            'Boston': [42.36, -71.05],
+            'Seattle': [47.60, -122.33],
+            'Maywood': [41.879, -87.843],
+            'Irvine': [33.684, -117.826],
+            'Charlotte': [35.227, -80.843],
+            'Gainesville': [29.651, -82.324],
+            'Lexington': [38.040, -84.503],
+            'Ann Arbor': [42.281, -83.743],
+            'Charleston': [32.776, -79.931],
+            'Bethesda': [38.984, -77.095],
+            'Louisville': [38.252, -85.758],
+            'Cleveland': [41.499, -81.694],
+            'Columbia': [34.000, -81.034],
+            'Waterloo': [43.464, -80.520],
+            'Iowa City': [41.661, -91.530],
+            'Royal Oak': [42.489, -83.144],
+            'Tallahassee': [30.438, -84.281],
+            'Aurora': [39.729, -104.832],
+            'Farmington': [36.728, -108.218],
+            'Palm Beach Gardens': [26.823, -80.138],
+            'Augusta': [33.473, -82.010],
+            'Hillsboro': [45.522, -122.989],
+            'Quito': [-0.180, -78.467],
+            'Caguas': [18.234, -66.048],
+            'Chattanooga': [35.045, -85.309],
+            'Hartford': [41.765, -72.673],
+            'Atlantis': [26.590, -80.101],
+            'Orlando': [28.538, -81.379],
+            'Tampa': [27.951, -82.457],
+            'Jacksonville': [30.332, -81.656],
+            'Boca Raton': [26.368, -80.128],
+            'Reading': [40.336, -75.927],
+            'Greenville': [34.852, -82.394],
+            'Los Angeles': [34.05, -118.24],
+            'Washington': [38.90, -77.03],
+            'Phoenix': [33.44, -112.07],
+            'Salt Lake City': [40.76, -111.89],
+            'Denver': [39.73, -104.99],
+            'Houston': [29.76, -95.36],
+            'Dallas': [32.77, -96.79],
+            'Austin': [30.26, -97.74],
+            'Chicago': [41.87, -87.62],
+            'St. Louis': [38.62, -90.19],
+            'Atlanta': [33.74, -84.38],
+            'Miami': [25.76, -80.19],
+            'New York': [40.71, -74.00],
+            'Philadelphia': [39.95, -75.16],
+            'Baltimore': [39.29, -76.61],
+            'Detroit': [42.33, -83.04],
+            'Minneapolis': [44.97, -93.26],
+            'Omaha': [41.25, -95.93],
+            'Tucson': [32.22, -110.97],
+            'Nashville': [36.16, -86.78],
+            'San Francisco': [37.77, -122.41],
+
+            'Oxford': [51.75, -1.25],
+            'Cambridge': [52.20, 0.12],
+            'Manchester': [53.48, -2.24],
+            'Sheffield': [53.38, -1.47],
+            'Leeds': [53.80, -1.54],
+            'Edinburgh': [55.95, -3.18],
+            'Glasgow': [55.86, -4.25],
+            'Cardiff': [51.48, -3.17],
+            'Dublin': [53.34, -6.26],
+            'Galway': [53.27, -9.05],
+            'Basingstoke': [51.266, -1.092],
+            'Northampton': [52.240, -0.902],
+            'Uxbridge': [51.548, -0.480],
+            'Leicester': [52.637, -1.139],
+            'Brighton': [50.822, -0.137],
+            'Derby': [52.922, -1.476],
+            'Colchester': [51.889, 0.904],
+            'Middlesbrough': [54.574, -1.235],
+            'Wrightington': [53.624, -2.706],
+            'Portsmouth': [50.819, -1.088],
+            'Ormskirk': [53.566, -2.883],
+            'Darlington': [54.523, -1.559],
+            'St Leonards On Sea': [50.855, 0.559],
+            'Stanmore': [51.618, -0.315],
+            'Birmingham': [52.486, -1.890],
+
+            'Paris': [48.85, 2.35],
+            'Lyon': [45.76, 4.83],
+            'Marseille': [43.29, 5.36],
+            'Dijon': [47.32, 5.04],
+            'Strasbourg': [48.57, 7.75],
+            'Toulouse': [43.604, 1.444],
+            'Nice': [43.710, 7.262],
+            'Montpellier': [43.611, 3.877],
+            'Annecy': [45.899, 6.129],
+            'Tours': [47.394, 0.684],
+            'Neuilly sur Seine': [48.884, 2.268],
+            'Boulogne-Billancourt': [48.839, 2.239],
+            'Saint Gregoire': [48.151, -1.685],
+            'Montbonnot': [45.224, 5.804],
+            'Toulon': [43.124, 5.928],
+
+            'Berlin': [52.52, 13.40],
+            'Munich': [48.13, 11.58],
+            'Hamburg': [53.55, 9.99],
+            'Aachen': [50.77, 6.08],
+            'Stuttgart': [48.77, 9.18],
+            'Cologne': [50.938, 6.960],
+            'Regensburg': [49.013, 12.101],
+            'Kiel': [54.323, 10.122],
+            'Magdeburg': [52.120, 11.627],
+            'Muenster': [51.960, 7.626],
+            'Münster': [51.960, 7.626],
+            'Wiesbaden': [50.082, 8.241],
+            'Mannheim': [49.487, 8.466],
+            'Bad Neustadt a.d. Saale': [50.322, 10.216],
+            'Bad Neustadt a.d.Saale': [50.322, 10.216],
+            'Heidelberg': [49.398, 8.672],
+
+            'Zurich': [47.37, 8.54],
+            'Bern': [46.94, 7.44],
+            'Berne': [46.94, 7.44],
+            'Geneva': [46.20, 6.14],
+            'Meyrin': [46.233, 6.081],
+            'Morges': [46.511, 6.498],
+            'Rennaz': [46.380, 6.911],
+            'Winterthur': [47.498, 8.724],
+            'St. Gallen': [47.424, 9.376],
+            'Bruderholz': [47.520, 7.596],
+            'Orthopaedic Surgery and Traumatology': [46.94, 7.44],
+            'Bern University Hospital': [46.947, 7.447],
+
+            'Vienna': [48.20, 16.37],
+            'Graz': [47.07, 15.43],
+            'Brussels': [50.85, 4.35],
+            'Leuven': [50.87, 4.70],
+            'Ghent': [51.05, 3.73],
+            'Antwerp': [51.221, 4.399],
+            'Antwerpen': [51.221, 4.399],
+            'Edegem': [51.156, 4.445],
+            'Jette': [50.880, 4.325],
+            'Auderghem': [50.816, 4.432],
+            'Amsterdam': [52.36, 4.90],
+            'Rotterdam': [51.92, 4.47],
+            'Eindhoven': [51.44, 5.46],
+            'Delft': [52.01, 4.35],
+            'Hoofddorp': [52.302, 4.690],
+            'Madrid': [40.41, -3.70],
+            'Barcelona': [41.38, 2.17],
+            'Seville': [37.38, -5.98],
+            'Valencia': [39.469, -0.376],
+            'Zaragoza': [41.649, -0.889],
+            'Vigo': [42.240, -8.720],
+            'Sabadell': [41.546, 2.108],
+            'Lisbon': [38.72, -9.13],
+            'Porto': [41.15, -8.62],
+            'Rome': [41.90, 12.49],
+            'Milan': [45.46, 9.18],
+            'Bologna': [44.49, 11.34],
+            'Padua': [45.40, 11.87],
+            'Porto Viro': [45.026, 12.215],
+            'Modena': [44.648, 10.925],
+            'Verona': [45.438, 10.991],
+            'Milano': [45.46, 9.18],
+            'Roma': [41.90, 12.49],
+            'Napoli': [40.851, 14.268],
+            'Latina': [41.467, 12.903],
+            'Acquaviva delle Fonti': [40.898, 16.842],
+            'Acquaviva delle Fonti (Bari)': [40.898, 16.842],
+            'Oslo': [59.91, 10.75],
+            'Stockholm': [59.32, 18.06],
+            'Copenhagen': [55.67, 12.56],
+            'Aarhus': [56.15, 10.20],
+            'Odense': [55.403, 10.402],
+            'Warsaw': [52.22, 21.01],
+            'Poznan': [52.406, 16.925],
+            'Wroclaw': [51.108, 17.038],
+            'Lodz': [51.759, 19.456],
+            'Krakow': [50.06, 19.94],
+            'Prague': [50.07, 14.43],
+            'Brno': [49.19, 16.60],
+            'Budapest': [47.497, 19.040],
+            'Szombathely': [47.230, 16.621],
+            'Istanbul': [41.00, 28.97],
+            'Ankara': [39.933, 32.859],
+            'Izmir': [38.423, 27.143],
+            'Besiktas': [41.043, 29.009],
+            'Ağrı': [39.719, 43.051],
+            'Kahramanmaras': [37.585, 36.937],
+            'Athens': [37.98, 23.72],
+
+            'Tokyo': [35.67, 139.65],
+            'Yokohama': [35.44, 139.63],
+            'Osaka': [34.69, 135.50],
+            'Kyoto': [35.01, 135.76],
+            'Fukuoka': [33.59, 130.40],
+            'Nagoya': [35.18, 136.90],
+            'Sendai': [38.26, 140.86],
+            'Chiba': [35.607, 140.106],
+            'Hirakata': [34.815, 135.650],
+            'Hamamatsu': [34.710, 137.726],
+            'Funabashi': [35.694, 139.983],
+            'Urayasu': [35.654, 139.902],
+            'Tatebayashi': [36.247, 139.533],
+            'Ogawara-machi': [38.051, 140.729],
+            'Higashiosaka': [34.679, 135.600],
+            'Matsubara': [34.565, 135.552],
+            'Kagoshima': [31.596, 130.557],
+            'Sapporo': [43.062, 141.354],
+            'Nagasaki': [32.750, 129.878],
+            'Toyonaka': [34.782, 135.469],
+            'Kobe': [34.690, 135.195],
+            'Saga': [33.263, 130.300],
+            'Hiroshima': [34.385, 132.455],
+            'Obihiro': [42.924, 143.196],
+            'Isehara': [35.402, 139.314],
+            'Sukumo': [32.941, 132.730],
+
+            'Seoul': [37.56, 126.97],
+            'Daegu': [35.87, 128.60],
+            'Incheon': [37.45, 126.70],
+            'Daejeon': [36.35, 127.38],
+            'Ulsan': [35.53, 129.31],
+            'Busan': [35.179, 129.076],
+            'Goyang': [37.658, 126.832],
+            'Sejong': [36.480, 127.289],
+            'Seongnam': [37.420, 127.127],
+            'Ansan': [37.321, 126.830],
+            'Iksan': [35.949, 126.957],
+            'Suwon': [37.263, 127.028],
+            'Gwangju': [35.160, 126.851],
+            'Chuncheon': [37.881, 127.730],
+            'Anyang': [37.394, 126.956],
+            'Bucheon': [37.503, 126.766],
+            'Yeosu': [34.760, 127.662],
+            'Pohang': [36.019, 129.343],
+            'Cheongju': [36.642, 127.489],
+
+            'Taipei': [25.03, 121.56],
+            'Tainan': [22.99, 120.22],
+            'Kaohsiung': [22.62, 120.30],
+            'Hong Kong': [22.31, 114.16],
+            'Beijing': [39.90, 116.40],
+            'Shanghai': [31.23, 121.47],
+            'Shenzhen': [22.54, 114.05],
+            'Wuhan': [30.59, 114.30],
+            'Chengdu': [30.57, 104.06],
+            'Hangzhou': [30.274, 120.155],
+            'Wuxi': [31.491, 120.312],
+            'Singapore': [1.35, 103.81],
+            'Bangkok': [13.75, 100.50],
+            'Mumbai': [18.97, 72.87],
+            'New Delhi': [28.61, 77.20],
+            'Pune': [18.52, 73.85],
+            'Chennai': [13.08, 80.27],
+            'Kochi': [9.931, 76.267],
+            'Ahmedabad': [23.022, 72.571],
+            'Hyderabad': [17.385, 78.487],
+            'Coimbatore': [11.017, 76.956],
+            'Sydney': [-33.86, 151.20],
+            'Melbourne': [-37.81, 144.96],
+            'Brisbane': [-27.47, 153.02],
+            'South Brisbane': [-27.480, 153.020],
+            'Adelaide': [-34.92, 138.60],
+            'Auckland': [-36.84, 174.76],
+            'Dunedin': [-45.87, 170.50],
+            'Perth': [-31.952, 115.861],
+            'Geelong': [-38.149, 144.361],
+            'Christchurch': [-43.532, 172.636],
+            'Lower Hutt': [-41.212, 174.912],
+            'Taranaki': [-39.300, 174.100],
+            'Wellington': [-41.286, 174.776],
+            'Waurn Ponds': [-38.198, 144.291],
+            'Kogarah': [-33.965, 151.135],
+            'Clayton': [-37.915, 145.130],
+
+            'Riyadh': [24.71, 46.67],
+            'Abu Dhabi': [24.45, 54.37],
+            'Tehran': [35.68, 51.38],
+            'Tel Aviv': [32.08, 34.78],
+            'Haifa': [32.79, 34.98],
+            'Beirut': [33.89, 35.50],
+            'Cairo': [30.04, 31.23],
+            'Al Khobar': [26.217, 50.197],
+            'Bisha': [19.984, 42.605],
+            'Doha': [25.286, 51.531],
+            'Kuwait City': [29.375, 47.977],
+            'Baghdad': [33.315, 44.366],
+            'Amman': [31.953, 35.910],
+            'Irbid': [32.556, 35.847],
+            'Ariel': [32.104, 35.185],
+            'Rehovot': [31.894, 34.811],
+            'Petah Tikva': [32.084, 34.887],
+            'Panama City': [8.983, -79.520],
+            'Cape Town': [-33.92, 18.42],
+            'Johannesburg': [-26.20, 28.04],
+            'Durban': [-29.85, 31.02],
+            'Pretoria': [-25.747, 28.229],
+            'São Paulo': [-23.55, -46.63],
+            'Brasília': [-15.79, -47.88],
+            'Rio de Janeiro': [-22.90, -43.17],
+            'Santiago': [-33.44, -70.66],
+            'Bogotá': [4.71, -74.07],
+            'Medellin': [6.244, -75.581],
+            'Bucaramanga': [7.119, -73.122],
+            'Montevideo': [-34.90, -56.16],
+            'Buenos Aires': [-34.60, -58.38],
+            'Guadalajara': [20.673, -103.344],
+            'Mexico City': [19.433, -99.133],
+            'Zapopan': [20.723, -103.384],
+            'Chihuahua': [28.632, -106.069],
+            'Lima': [-12.046, -77.043],
+            'Ciudad de Quito': [-0.180, -78.467],
+            'Viña del Mar': [-33.024, -71.551],
+            'Iquique': [-20.230, -70.135],
+            'Joinville': [-26.304, -48.848],
+            'Jundiaí': [-23.186, -46.884],
+            'Santo André': [-23.663, -46.539],
+            'Juiz de Fora': [-21.761, -43.349],
+            'Passo Fundo': [-28.262, -52.407],
+            'Jaraguá do Sul': [-26.485, -49.067],
+            'Rio do Sul': [-27.215, -49.643],
+            'Goiânia': [-16.686, -49.264],
+            'Capital Federal': [-34.603, -58.381]
+        };
+
+        function toTitleCase(str) {
+            return str
+                .toLowerCase()
+                .replace(/\b\w/g, char => char.toUpperCase());
+        }
+
+        function normalizeCity(city, country = '') {
+            if (!city) return '';
+
+            city = city.trim().replace(/\s+/g, ' ');
+            const countryNormalized = (country || '').trim().toLowerCase();
+
+            const aliasMap = {
+                'Montréal': 'Montreal',
+                'Zürich': 'Zurich',
+                'Toyko': 'Tokyo',
+                'St Louis': 'St. Louis',
+                'Saint Louis': 'St. Louis',
+                'St Catharines': 'St. Catharines',
+                'Sao Paulo': 'São Paulo',
+                'Bogota': 'Bogotá',
+                'Brasilia': 'Brasília',
+                'Lisboa': 'Lisbon',
+                'Busam': 'Busan',
+                'Osaka-city': 'Osaka',
+                'Yokohama, Kanagawa': 'Yokohama',
+                'Hamamatsu, Shizuoka': 'Hamamatsu',
+                'Hamamatsu Tyuuouku': 'Hamamatsu',
+                'Funabashi Chiba': 'Funabashi',
+                'Funabashi ,Chiba': 'Funabashi',
+                'Funabashi, Chiba': 'Funabashi',
+                'Shinjuku-ku, Tokyo': 'Tokyo',
+                'Hachioji, Tokyo': 'Tokyo',
+                'Aoba-ku, Sendai': 'Sendai',
+                'Ayabe-shi, Kyoto': 'Kyoto',
+                'Kyotanabe, Kyoto': 'Kyoto',
+                'Kogarah, NSW': 'Kogarah',
+                'Ansan-si, Gyeonggi-do': 'Ansan',
+                'Bucheon-si, Gyeonggi-do': 'Bucheon',
+                'Pohang-si, Nam-gu': 'Pohang',
+                'Yeosu-si': 'Yeosu',
+                'Goyang-si': 'Goyang',
+                'Goyang-sI': 'Goyang',
+                'Seongnam-si': 'Seongnam',
+                'Seong Nam': 'Seongnam',
+                'Sungnamsi': 'Seongnam',
+                'Sejong-si': 'Sejong',
+                'lyon': 'Lyon',
+                'LYON': 'Lyon',
+                'paris': 'Paris',
+                'london': 'London',
+                'kyoto': 'Kyoto',
+                'brisbane': 'Brisbane',
+                'durham': 'Durham',
+                'hyderabad': 'Hyderabad',
+                'khobar': 'Al Khobar',
+                'AlShuhada': 'Kuwait City',
+                'MEDELLIN': 'Medellin',
+                'ZARAGOZA': 'Zaragoza',
+                'VALENCIA': 'Valencia',
+                'IZMIR': 'Izmir',
+                'JOINVILLE': 'Joinville',
+                'BUFFALO': 'Buffalo',
+                'MUMBAI': 'Mumbai',
+                'DURBAN': 'Durban',
+                'GWANGJU': 'Gwangju',
+                'TOURS': 'Tours',
+                'CUIDAD DE MEXICO': 'Mexico City',
+                'Ciudad de Mexico': 'Mexico City',
+                'Ciudad de México': 'Mexico City',
+                'las condes, santiago': 'Santiago',
+                'Las Condes, Santiago': 'Santiago',
+                'viña del mar': 'Viña del Mar',
+                'petah Tikva': 'Petah Tikva',
+                'Panamá': 'Panama City',
+                'Berne': 'Bern',
+                'Milano': 'Milan',
+                'Roma': 'Rome',
+                'Napoli': 'Naples',
+                'latina': 'Latina',
+                'higashiosaka': 'Higashiosaka',
+                'chihuahua': 'Chihuahua',
+                'doha': 'Doha',
+                'derby': 'Derby',
+                'clayton': 'Clayton',
+                'toulouse': 'Toulouse',
+                'quito': 'Quito',
+                'Santo André - SP': 'Santo André',
+                'Jaragua do Sul': 'Jaraguá do Sul',
+                'CAPITAL FEDERAL': 'Capital Federal'
+            };
+
+            if (aliasMap[city]) return aliasMap[city];
+
+            if (/^.+,\s*Tokyo$/i.test(city)) return 'Tokyo';
+            if (/^.+,\s*Kyoto$/i.test(city)) return 'Kyoto';
+            if (/^.+,\s*Chiba$/i.test(city)) return 'Funabashi';
+            if (/^.+,\s*Shizuoka$/i.test(city)) return 'Hamamatsu';
+            if (/^.+,\s*Kanagawa$/i.test(city)) return 'Yokohama';
+            if (/^.+,\s*Victoria$/i.test(city) && countryNormalized === 'australia') return 'Melbourne';
+            if (/^.+,\s*Gyeonggi-do$/i.test(city)) return 'Ansan';
+            if (/^.+,\s*Santiago$/i.test(city)) return 'Santiago';
+            if (/^.+,\s*Chih\.$/i.test(city)) return 'Chihuahua';
+
+            const titleCased = toTitleCase(city);
+
+            if (aliasMap[titleCased]) return aliasMap[titleCased];
+
+            return titleCased;
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(csvUrl);
+                if (!res.ok) throw new Error('Could not fetch CSV');
+                
+                const csv = await res.text();
+                const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
+                const dataRows = lines.slice(1);
+                
+                const countries = new Set();
+                const processedCities = new Set(); 
+                let submissions = 0;
+
+                dataRows.forEach(line => {
+                    const cols = line
+                        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+                        .map(c => c.trim().replace(/^"|"$/g, ''));
+
+                    let city = cols[0] || '';
+                    const country = cols[1] || '';
+
+                    if (!city && !country) return;
+                    
+                    submissions++;
+                    if (country) countries.add(country);
+
+                    city = normalizeCity(city, country);
+
+                    if (hubs[city] && !processedCities.has(city)) {
+                        const icon = L.divIcon({
+                            className: 'ping-marker',
+                            iconSize: [12, 12]
+                        });
+
+                        L.marker(hubs[city], { icon }).addTo(map)
+                            .bindTooltip(`${city}, ${country}`, {
+                                direction: 'top',
+                                offset: [0, -8]
+                            });
+
+                        processedCities.add(city);
+                    }
+                });
+
+                document.getElementById('count-abstracts').innerText = submissions.toLocaleString();
+                document.getElementById('count-nations').innerText = countries.size;
+
+            } catch (e) { 
+                console.error('Error loading CSV data:', e); 
+            }
+        }
+        
+        loadData();
+    </script>  
+</body>
+</html>
