@@ -1,5 +1,5 @@
 <html lang="en">
-<head>   
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUPO 2026 | Research Map</title>
@@ -162,6 +162,48 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
+
+
+        .coverage-panel {
+            margin: 18px auto 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: var(--shadow-soft);
+            text-align: left;
+            display: none;
+        }
+
+        .coverage-panel h2 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+            color: var(--brand-blue);
+        }
+
+        .coverage-panel p {
+            margin: 0 0 12px;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        .coverage-list {
+            margin: 0;
+            padding-left: 20px;
+            columns: 2;
+            column-gap: 30px;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .coverage-ok {
+            border-color: rgba(106, 175, 94, 0.35);
+        }
+
+        .coverage-warning {
+            border-color: rgba(217, 54, 38, 0.28);
+        }
+
         @media (max-width: 900px) {
             #map {
                 height: 560px;
@@ -190,6 +232,10 @@
                 width: 100%;
                 max-width: 320px;
             }
+
+            .coverage-list {
+                columns: 1;
+            }
         }
     </style>
 </head>
@@ -207,6 +253,10 @@
                 <span class="num" id="count-nations">0</span>
                 <span class="label">Countries Represented</span>
             </div>
+            <div class="stat-card">
+                <span class="num" id="count-cities">0</span>
+                <span class="label">Cities Mapped</span>
+            </div>
         </div>
 
         <div class="btn-container">
@@ -215,6 +265,12 @@
 
         <div class="map-card">
             <div id="map"></div>
+        </div>
+
+        <div class="coverage-panel" id="coverage-panel">
+            <h2 id="coverage-title">Coordinate Coverage Check</h2>
+            <p id="coverage-summary"></p>
+            <ul class="coverage-list" id="coverage-list"></ul>
         </div>
     </div>
 
@@ -715,7 +771,8 @@
                 const dataRows = lines.slice(1);
                 
                 const countries = new Set();
-                const processedCities = new Set(); 
+                const processedCities = new Set();
+                const missingCities = new Map();
                 let submissions = 0;
 
                 dataRows.forEach(line => {
@@ -731,6 +788,7 @@
                     submissions++;
                     if (country) countries.add(country);
 
+                    const originalCity = city.trim();
                     city = normalizeCity(city, country);
 
                     if (hubs[city] && !processedCities.has(city)) {
@@ -746,17 +804,70 @@
                             });
 
                         processedCities.add(city);
+                    } else if (!hubs[city]) {
+                        const key = `${city}|${country}`;
+                        if (!missingCities.has(key)) {
+                            missingCities.set(key, {
+                                city,
+                                country,
+                                originalCity,
+                                count: 0
+                            });
+                        }
+                        missingCities.get(key).count++;
                     }
                 });
 
                 document.getElementById('count-abstracts').innerText = submissions.toLocaleString();
                 document.getElementById('count-nations').innerText = countries.size;
+                document.getElementById('count-cities').innerText = processedCities.size;
+
+                updateCoveragePanel(missingCities, processedCities.size);
 
             } catch (e) { 
                 console.error('Error loading CSV data:', e); 
+                const panel = document.getElementById('coverage-panel');
+                panel.style.display = 'block';
+                panel.className = 'coverage-panel coverage-warning';
+                document.getElementById('coverage-title').innerText = 'CSV Loading Error';
+                document.getElementById('coverage-summary').innerText = 'The Google Sheet could not be loaded. Please check that the published CSV link is accessible.';
             }
         }
-        
+
+        function updateCoveragePanel(missingCities, mappedCount) {
+            const panel = document.getElementById('coverage-panel');
+            const title = document.getElementById('coverage-title');
+            const summary = document.getElementById('coverage-summary');
+            const list = document.getElementById('coverage-list');
+
+            panel.style.display = 'block';
+            list.innerHTML = '';
+
+            if (missingCities.size === 0) {
+                panel.className = 'coverage-panel coverage-ok';
+                title.innerText = 'Coordinate Coverage Complete';
+                summary.innerText = `All Google Sheet cities currently have coordinates in the code. ${mappedCount} unique cities are mapped.`;
+                return;
+            }
+
+            panel.className = 'coverage-panel coverage-warning';
+            title.innerText = 'Cities Missing Coordinates';
+            summary.innerText = `${missingCities.size} city/country combination(s) from the Google Sheet are missing coordinates in the hubs list. Add these to the hubs object or alias them in normalizeCity().`;
+
+            [...missingCities.values()]
+                .sort((a, b) => a.city.localeCompare(b.city))
+                .forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.city}${item.country ? ', ' + item.country : ''} (${item.count})`;
+                    list.appendChild(li);
+                });
+
+            console.warn('Cities missing coordinates:', [...missingCities.values()]);
+            console.info('Suggested hubs entries to complete manually:');
+            [...missingCities.values()]
+                .sort((a, b) => a.city.localeCompare(b.city))
+                .forEach(item => console.info(`'${item.city}': [LATITUDE, LONGITUDE], // ${item.country || 'Country not provided'}`));
+        }        
         loadData();
     </script>  
 </body>
